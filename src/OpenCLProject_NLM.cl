@@ -1,4 +1,5 @@
 #ifndef __OPENCL_VERSION__
+#include<math>
 #include <OpenCL/OpenCLKernel.hpp> // Hack to make syntax highlighting in Eclipse work
 #endif
 
@@ -9,7 +10,8 @@ bool isInBounds(int n, int x, int y)
 
 float computeWeight(float dist, float sigma) // compute weight without "/z(i)" division
 {
-    return expf(-dist / (sigma * sigma));
+    return exp(-dist / (sigma * sigma));
+    //return (-dist / (sigma * sigma));
 }
 
 float computePatchDistance( __global float * image, 
