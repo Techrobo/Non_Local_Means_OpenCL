@@ -3,6 +3,17 @@
 #include <OpenCL/OpenCLKernel.hpp> // Hack to make syntax highlighting in Eclipse work
 #endif
 
+int getIndexGlobal(size_t countX, int i, int j) {
+	return j * countX + i;
+}
+// Read value from global array a, return 0 if outside image
+float getValueGlobal(__global const float* a, size_t countX, size_t countY, int i, int j) {
+	if (i < 0 || i >= countX || j < 0 || j >= countY)
+		return 0;
+	else
+		return a[getIndexGlobal(countX, i, j)];
+}
+
 bool isInBounds(int n, int x, int y) 
 {
     return x >= 0 && x < n && y >= 0 && y < n;
@@ -44,14 +55,16 @@ __kernel void nlmKernel(__global float * image,
                         float sigma,
                         __global float *filteredImage)
 {
-    int index = get_global_id(0);
-    
-    if (index >= n * n) {
-        return;
-    }
 
-    int pixelRow = get_group_id(0);
-    int pixelCol = get_local_id(0);
+
+    int pixelRow = get_global_id(0);
+    int pixelCol = get_global_id(1);
+
+ 	size_t countX = get_global_size(0);
+	size_t countY = get_global_size(1);   
+
+    //if (getIndexGlobal(countX,pixelRow,pixelCol) >= n * n) 
+    //    return;
 
     float res = 0;
     float sumW = 0;                    // sumW is the Z(i) of w(i, j) formula
@@ -74,10 +87,10 @@ __kernel void nlmKernel(__global float * image,
                                         j - patchSize / 2  );
             w = computeWeight(dist, sigma);
             sumW += w;
-            res += w * image[i * n + j];
+            res += w * image[j * n + i];
         }
     }
     res = res / sumW;
 
-    filteredImage[index] = res;
+    filteredImage[getIndexGlobal(countX,pixelCol,pixelRow)] = res;
     }

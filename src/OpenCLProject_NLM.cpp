@@ -205,7 +205,7 @@ int main(int argc, char** argv) {
 	cl::Kernel nlmkernel(program, "nlmKernel");
 
 	// Declare some values
-	int patchSize = 5 ;
+	float patchSize = 5 ;
     float filterSigma = 0.060000 ;
     float patchSigma = 1.2000000 ;
 	//std::vector<float> res(n * n);
@@ -233,14 +233,14 @@ int main(int argc, char** argv) {
 	cl::Buffer d_output (context, CL_MEM_READ_WRITE, size_image);
 
 	// Initialize memory to 0xff (useful for debugging because otherwise GPU memory will contain information from last execution)
-	memset(h_input.data(), 255, size_image);
-	memset(h_outputCpu.data(), 255, size_image);
+	//memset(h_input.data(), 255, size_image);
+	//memset(h_outputCpu.data(), 255, size_image);
 	memset(h_outputGpu.data(), 255, size_image);
 	memset(_weights, 255, size_weights); //For weight vetor
 	//TODO: GPU
-	queue.enqueueWriteBuffer(d_input, true, 0, size_image, h_input.data());
-	queue.enqueueWriteBuffer(d_weights, true, 0, size_weights, _weights);
-	queue.enqueueWriteBuffer(d_output, true, 0, size_image, h_outputGpu.data());
+	//queue.enqueueWriteBuffer(d_input, true, 0, size_image, h_input.data());
+	//queue.enqueueWriteBuffer(d_weights, true, 0, size_weights, _weights);
+	//queue.enqueueWriteBuffer(d_output, true, 0, size_image, h_outputGpu.data());
 
 	//////// Load input data ////////////////////////////////
 	// Use random input data
@@ -248,6 +248,7 @@ int main(int argc, char** argv) {
 	for (int i = 0; i < count; i++)
 		h_input[i] = (rand() % 100) / 5.0f - 10.0f;
 	*/
+	/*
 	// Use an image (Valve.pgm) as input data
 	{
 		std::vector<float> inputData;
@@ -260,10 +261,11 @@ int main(int argc, char** argv) {
 		}
 	}
 	// Use an image (Valve.pgm) as input data
-	/*// Input image (noisy_house.txt)
+	*/
+	// Input image (noisy_house.txt)
 	std::cout << "Image read txt" << std::endl ;
-	h_input = read("/zhome/guptasm/gpulabprojectcma/build/noisy_house.txt", n, n, ',');
-    std::cout << "Image read" << std::endl ; */
+	h_input = read("/zhome/guptasm/gpulabproject/build/noisy_house.txt", n, n, ',');
+    
 
 	// Do calculation on the host side
 
@@ -272,21 +274,21 @@ int main(int argc, char** argv) {
 	Core::TimeSpan cpuEnd = Core::getCurrentTime();
 
 	//////// Store CPU output image ///////////////////////////////////
-	Core::writeImagePGM("output_nlm_cpu2.pgm", h_outputCpu, countX, countY);
+	std::cout << std::endl<<"check1";
+	Core::writeImagePGM("output_nlm_cpu.pgm", h_outputCpu, countX, countY);
 
-	std::cout << std::endl;
+	std::cout << std::endl<<"check2";
 
     //Do Calculation on device side
 	//Reinitialize output memory to 0xff
-	memset(h_outputGpu.data(), 255, size_image);
+	//memset(h_outputGpu.data(), 255, size_image);
 	//TODO: GPU
 	queue.enqueueWriteBuffer(d_output, true, 0, size_image, h_outputGpu.data());
 	// Copy input data to device
 	cl::Event copy1;
-	queue.enqueueWriteBuffer(d_input, true, 0, size_image, h_input.data());
+	queue.enqueueWriteBuffer(d_input, true, 0, size_image, h_input.data(),NULL, &copy1);
 	//check if we should use cl::inputimage
 	queue.enqueueWriteBuffer(d_weights, true, 0, size_weights, _weights);
-    std::cout<<"test" ;
 	// Launch kernel on the device
 	cl::Event execution;
     nlmkernel.setArg<cl::Buffer>(0, d_input);
@@ -300,17 +302,17 @@ int main(int argc, char** argv) {
 	// Copy output data back to host
 	cl::Event copy2;
 	queue.enqueueReadBuffer(d_output, true, 0, size_image, h_outputGpu.data(), NULL, &copy2);
-	
+
 	// Print performance data
 	Core::TimeSpan cpuTime = cpuEnd - cpuStart;
-	Core::TimeSpan gpuTime = OpenCL::getElapsedTime(execution);
+/*	Core::TimeSpan gpuTime = OpenCL::getElapsedTime(execution);
 	Core::TimeSpan copyTime = OpenCL::getElapsedTime(copy1) + OpenCL::getElapsedTime(copy2);
-	Core::TimeSpan overallGpuTime = gpuTime + copyTime;
+	Core::TimeSpan overallGpuTime = gpuTime + copyTime; */
 	std::cout << "CPU Time: " << cpuTime.toString() << ", " << (count / cpuTime.getSeconds() / 1e6) << " MPixel/s" << std::endl;;
-	std::cout << "Memory copy Time: " << copyTime.toString() << std::endl;
+/*	std::cout << "Memory copy Time: " << copyTime.toString() << std::endl;
 	std::cout << "GPU Time w/o memory copy: " << gpuTime.toString() << " (speedup = " << (cpuTime.getSeconds() / gpuTime.getSeconds()) << ", " << (count / gpuTime.getSeconds() / 1e6) << " MPixel/s)" << std::endl;
 	std::cout << "GPU Time with memory copy: " << overallGpuTime.toString() << " (speedup = " << (cpuTime.getSeconds() / overallGpuTime.getSeconds()) << ", " << (count / overallGpuTime.getSeconds() / 1e6) << " MPixel/s)" << std::endl;
-
+*/
 	//////// Store GPU output image ///////////////////////////////////
 	Core::writeImagePGM("output_nlm_gpu.pgm", h_outputGpu, countX, countY);
     /*

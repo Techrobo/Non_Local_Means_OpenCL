@@ -42,6 +42,7 @@ endif()
 # Add source to this project's executable.
 #add_executable (Opencl-ex1 "src/OpenCLExercise2_Mandelbrot.cpp" ${CORE_SRC} ${OPENCL_SRC} )
 add_executable (Opencl-project-group8 "src/OpenCLProject_NLM.cpp" ${CORE_SRC} ${OPENCL_SRC} )
+#add_executable (Opencl-project-group8  "src/OpenCLExercise3_Sobel.cpp" ${CORE_SRC} ${OPENCL_SRC} )
 #add_executable (Opencl-ex1 "src/OpenCLExercise1_Basics.cpp" ${CORE_SRC} ${OPENCL_SRC} )
 target_include_directories (Opencl-project-group8 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} "CORE" "OPENCL" "src")
 target_link_libraries (Opencl-project-group8 ${OpenCL_LIBRARY} dl boost_system) #imagehlp)

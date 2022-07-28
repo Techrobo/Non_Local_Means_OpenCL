@@ -83,12 +83,12 @@ int main(int argc, char** argv) {
 	cl::CommandQueue queue(context, device, CL_QUEUE_PROFILING_ENABLE);
 
 	// Load the source code
-	cl::Program program = OpenCL::loadProgramSource(context, "/zhome/guptasm/Opencl-Basics-Linux/src/OpenCLExercise3_Sobelcl.cl");
+	cl::Program program = OpenCL::loadProgramSource(context, "/zhome/guptasm/gpulabproject/src/OpenCLExercise3_Sobelcl.cl");
 	// Compile the source code. This is similar to program.build(devices) but will print more detailed error messages
 	OpenCL::buildProgram(program, devices);
 
 	// Declare some values
-	std::size_t wgSizeX = 16; // Number of work items per work group in X direction
+	std::size_t wgSizeX = 16; // Number of work items per work group in X directionß
 	std::size_t wgSizeY = 16;
 	std::size_t countX = wgSizeX * 40; // Overall number of work items in X direction = Number of elements in X direction
 	std::size_t countY = wgSizeY * 30;
