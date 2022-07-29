@@ -39,17 +39,24 @@ float computePatchDistance( __global float * image,
     float ans = 0;
     float temp;
  
+    //printf("\nkernelcheck4");
     for (int i = 0; i < patchSize; i++) {
         for (int j = 0; j < patchSize; j++) {
-            
+            //printf("kernelcheck5");
             if (isInBounds(n, p1_rowStart + i, p1_colStart + j) && isInBounds(n, p2_rowStart + i, p2_colStart + j)) {
-    
+                //printf("\nkernelcheck6");
                 temp = image[(p1_rowStart + i) * n + p1_colStart + j] - image[(p2_rowStart + i) * n + p2_colStart + j];
+               
+                //printf("\nkernelcheck7");
+                //printf("%f",_weights[i * patchSize + j]);
                 ans +=  _weights[i * patchSize + j] * temp * temp;
-                
+                //ans +=  1* temp * temp;
+               
+                //printf("\nkernelcheck8");
             }
         }
     }
+    //printf("\nkernelcheck9");
 
     return ans;
 
@@ -69,9 +76,29 @@ float filterPixel( __global float * image,
     float w;
     int patchRowStart = pixelRow - (patchSize / 2);
     int patchColStart = pixelCol - (patchSize / 2);
- 
-    barrier(CLK_LOCAL_MEM_FENCE); //to synchronize each work item
+
+    //printf("kernelcheck2");
     
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    /*
+    //printf("kernelcheck3");
+    dist = computePatchDistance(image,  
+                                _weights, 
+                                n, 
+                                patchSize, 
+                                patchRowStart, 
+                                patchColStart, 
+                                pixelRow, 
+                                pixelCol);
+    //printf("kernelcheck10");                            
+    w = computeWeight(dist, sigma);
+    sumW += w;
+    res += w * image[patchRowStart * n + patchColStart];
+    //printf("kernelcheck11");
+    //printf("kernelcheck12");
+    */
+    //printf("kernelcheck3");
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             dist = computePatchDistance(image,  
@@ -82,14 +109,15 @@ float filterPixel( __global float * image,
                                         patchColStart, 
                                         i - patchSize / 2, 
                                         j - patchSize / 2  );
-                                               
+            //printf("kernelcheck10");                                   
             w = computeWeight(dist, sigma);
             sumW += w;
             res += w * image[i * n + j];
-           
+            //printf("kernelcheck11");
         }
     }
     res = res / sumW;
+    //printf("kernelcheck12");
     return res;
 }
 
@@ -106,7 +134,7 @@ __kernel void nlmKernel(__global float * image,
  	size_t countX = get_global_size(0);
 	size_t countY = get_global_size(1);
  
-    
+    //printf("kernelcheck1"); 
     filteredImage[getIndexGlobal(countX,pixelRow,pixelCol)] = filterPixel(image, _weights, n, patchSize, pixelCol,pixelRow, sigma);
     
 }

@@ -23,8 +23,10 @@
 
 #include <boost/lexical_cast.hpp>
 
+//////////////////////////////////////////////////////////////////////////////
+// CPU implementation
+//////////////////////////////////////////////////////////////////////////////
 
-// Calulate Inside weights that gives more weight to inner pixel or patch then outer pixel
 float * computeInsideWeights(int patchSize, float patchSigma)
 {
     float * _weights = new float[patchSize * patchSize];
@@ -87,7 +89,6 @@ float computeWeight(float dist, float sigma) // compute weight without "/z(i)" d
     return expf(-dist / (sigma * sigma));
 }
 
-// To calculate the similarity between each pixel of the patch with another patch
 float computePatchDistance( float * image, 
 							float * _weights, 
 							int n, 
@@ -111,8 +112,6 @@ float computePatchDistance( float * image,
 
     return ans;
 }
-
-// To calculate the similarity between each patch and return final normalized pixed to the filter image
 float filterPixel( float * image, 
                    float * _weights, 
                    int n, 
@@ -147,9 +146,7 @@ float filterPixel( float * image,
 
     return res;
 }
-//////////////////////////////////////////////////////////////////////////////
-// CPU implementation Host Function
-//////////////////////////////////////////////////////////////////////////////
+
 std::vector<float> nlmHost( float * image, 
                                 int n, 
                                 int patchSize,  
@@ -233,16 +230,16 @@ int main(int argc, char** argv) {
 	// Create a kernel object
 	cl::Kernel nlmkernel(program, "nlmKernel");
 
-	// Declare some values which are hyperparameters change them for tuning
+	// Declare some values
 	int patchSize = 5 ;
     float filterSigma = 0.060000 ;
     float patchSigma = 1.2000000 ;
+	//std::vector<float> res(n * n);
     std::vector<float>_weights = computeInsideWeightsgpu(patchSize, patchSigma); //To calculate inside weights
-
 	std::size_t wgSizeX = 16; //16; // Number of work items per work group in X direction
 	std::size_t wgSizeY = 16; //16;
-	std::size_t countX = wgSizeX * 8 ; //4; // Overall number of work items in X direction = Number of elements in X direction
-	std::size_t countY = wgSizeY * 8 ;//4;
+	std::size_t countX = wgSizeX * 12 ; //4; // Overall number of work items in X direction = Number of elements in X direction
+	std::size_t countY = wgSizeY * 12 ;//4;
 	//std::size_t countX = 64; // Overall number of work items in X direction = Number of elements in X direction
 	//std::size_t countY = 64;
 	std::size_t n = countX ; // Size of input image nxn
@@ -262,25 +259,35 @@ int main(int argc, char** argv) {
 	cl::Buffer d_output (context, CL_MEM_READ_WRITE, size_image);
 
 	// Initialize memory to 0xff (useful for debugging because otherwise GPU memory will contain information from last execution)
-	memset(h_input.data(), 255, size_image);
-	memset(h_outputCpu.data(), 255, size_image);
+	//memset(h_input.data(), 255, size_image);
+	//memset(h_outputCpu.data(), 255, size_image);
 	memset(h_outputGpu.data(), 255, size_image);
+	//memset(_weights.data(), 255, size_weights); //For weight vetor
+	//TODO: GPU
+	//queue.enqueueWriteBuffer(d_input, true, 0, size_image, h_input.data());
+	//queue.enqueueWriteBuffer(d_weights, true, 0, size_weights, _weights);
+	//queue.enqueueWriteBuffer(d_output, true, 0, size_image, h_outputGpu.data());
+
+	//////// Load input data ////////////////////////////////
+	// Use random input data
+	/*
+	for (int i = 0; i < count; i++)
+		h_input[i] = (rand() % 100) / 5.0f - 10.0f;
+	*/
 	
-	// Use an image  "lena64.pgm" , "portrait_128.pgm" , "TajMahal_192.pgm.pgm" as input data
-	// "lena64.pgm"  is 64x64, "portrait_128.pgm" is 128x128 , "TajMahal_192.pgm.pgm" is 192x192
-	// Make sure these images are in build folder of your workspace
+	// Use an image (Valve.pgm) as input data
 	{
 		std::vector<float> inputData;
 		std::size_t inputWidth, inputHeight;
-		Core::readImagePGM("portrait_128.pgm", inputData, inputWidth, inputHeight);
+		Core::readImagePGM("TajMahal_192.pgm", inputData, inputWidth, inputHeight);
 		for (size_t j = 0; j < countY; j++) {
 			for (size_t i = 0; i < countX; i++) {
 				h_input[i + countX * j] = inputData[(i % inputWidth) + inputWidth * (j % inputHeight)];
 			}
 		}
 	}
-	// To Use an image "noisy_lena.txt" or "noisy_house.txt" or "noisy_flower.txt"
-	// noist_house is 64x64 ; noisy_flower is 128x128 ; noisy_lena is 256x256
+	// Use an image (Valve.pgm) as input data
+	
 	/*
 	// Input image (noisy_house.txt)
 	std::cout << "Image read txt" << std::endl ;
@@ -293,18 +300,24 @@ int main(int argc, char** argv) {
 	h_outputCpu= nlmHost(h_input.data(), n, patchSize, patchSigma, filterSigma);
 	Core::TimeSpan cpuEnd = Core::getCurrentTime();
 
+	//for (size_t i = 0; i < countX*countX; i++)
+	//std::cout<<h_outputCpu[i] ;
+
 	//////// Store CPU output image ///////////////////////////////////
+	//std::cout << std::endl<<"check1";
 	Core::writeImagePGM("output_nlm_cpu.pgm", h_outputCpu, countX, countY);
 
-    //////////////// GPU CODE ///////////////////////
+	//std::cout << std::endl<<"check2";
+
     //Do Calculation on device side
 	//Reinitialize output memory to 0xff
 	memset(h_outputGpu.data(), 255, size_image);
+	//TODO: GPU
 	queue.enqueueWriteBuffer(d_output, true, 0, size_image, h_outputGpu.data());
 	// Copy input data to device
 	cl::Event copy1;
 	queue.enqueueWriteBuffer(d_input, true, 0, size_image, h_input.data(),NULL, &copy1);
-    //Copy insideweights to device it depends on patchsize only
+	//check if we should use cl::inputimage
 	cl::Event copy3;
 	queue.enqueueWriteBuffer(d_weights, true, 0, size_weights, _weights.data(),NULL,&copy3);
 	// Launch kernel on the device
@@ -317,12 +330,91 @@ int main(int argc, char** argv) {
 	nlmkernel.setArg<cl::Buffer>(5, d_output);
     queue.enqueueNDRangeKernel(nlmkernel, cl::NullRange, cl::NDRange(countX, countY), cl::NDRange(wgSizeX, wgSizeY), NULL, &execution);
 
+/*
+    //Device Calculation image2d
+	// Reinitialize output memory to 0xff
+	memset(h_outputGpu.data(), 255, size_image);
+	//TODO: GPU
+	queue.enqueueWriteBuffer(d_output, true, 0, size_image, h_outputGpu.data());
+
+
+	// Copy input data to device
+	cl::Event copy1;
+	cl::Image2D image;
+	image = cl::Image2D(context, CL_MEM_READ_ONLY, cl::ImageFormat(CL_R, CL_FLOAT), countX, countY);
+	cl::size_t<3> origin;
+	origin[0] = origin[1] = origin[2] = 0;
+	cl::size_t<3> region;
+	region[0] = countX;
+	region[1] = countY;
+	region[2] = 1;
+	queue.enqueueWriteImage(image, true, origin, region, countX * sizeof (float), 0, h_input.data(), NULL, &copy1);
+	
+	cl::Image2D outputimage;
+	outputimage = cl::Image2D(context, CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), countX, countY);
+	//cl::size_t<3> origin;
+	origin[0] = origin[1] = origin[2] = 0;
+	//cl::size_t<3> region;
+	region[0] = countX;
+	region[1] = countY;
+	region[2] = 1;
+	
+	
+	// Launch kernel on the device
+	cl::Event execution;
+    nlmkernel.setArg<cl::Image2D>(0, image);
+	nlmkernel.setArg<cl::Buffer>(1, d_weights);
+	nlmkernel.setArg<cl_int>(2, n);
+	nlmkernel.setArg<cl_float>(3, patchSize);
+	nlmkernel.setArg<cl_float>(4, filterSigma);
+	nlmkernel.setArg<cl::Image2D>(5, outputimage);
+	//nlmkernel.setArg<cl::Buffer>(5, d_output);
+    queue.enqueueNDRangeKernel(nlmkernel, cl::NullRange, cl::NDRange(countX, countY), cl::NDRange(wgSizeX, wgSizeY), NULL, &execution);
+    */
+    /*
+	// Copy input data to device for color image
+	cl::Event copy1;
+	cl::Image2D image;
+	image = cl::Image2D(context, CL_MEM_READ_ONLY, cl::ImageFormat(CL_R, CL_FLOAT), countX, countY);
+	cl::size_t<3> origin;
+	origin[0] = origin[1] = origin[2] = 0;
+	cl::size_t<3> region;
+	region[0] = countX;
+	region[1] = countY;
+	region[2] = 1;
+	queue.enqueueWriteImage(image, true, origin, region, countX * sizeof (float), 0, h_input.data(), NULL, &copy1);
+	
+	cl::Image2D outputimage;
+	outputimage = cl::Image2D(context, CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), countX, countY);
+	//cl::size_t<3> origin;
+	origin[0] = origin[1] = origin[2] = 0;
+	//cl::size_t<3> region;
+	region[0] = countX;
+	region[1] = countY;
+	region[2] = 1;
+	
+	
+	// Launch kernel on the device
+	cl::Event execution;
+    nlmkernel.setArg<cl::Image2D>(0, image);
+	nlmkernel.setArg<cl::Image2D>(1, outputimage);
+	nlmkernel.setArg<cl_int>(2, n);
+	nlmkernel.setArg<cl_int>(3, n);
+	nlmkernel.setArg<cl_float>(4, 1.0f/(1.45f*1.45f));
+	nlmkernel.setArg<cl_float>(5, 0.2f);
+	//nlmkernel.setArg<cl::Buffer>(5, d_output);
+    queue.enqueueNDRangeKernel(nlmkernel, cl::NullRange, cl::NDRange(countX, countY), cl::NDRange(wgSizeX, wgSizeY), NULL, &execution);
+    */
+   
+    
 	// Copy output data back to host
 	cl::Event copy2;
 	//queue.enqueueReadImage(outputimage, true, origin, region, countX * sizeof (float), 0, h_outputGpu.data(), NULL, &copy1);
 	queue.enqueueReadBuffer(d_output, true, 0, size_image, h_outputGpu.data(), NULL, &copy2);
 	std::cout<<std::endl;
-
+	//for (size_t i = 0; i < countX*countX; i++)
+	//std::cout<<h_outputGpu[i] ;
+	//std::cout<<std::endl;
 	// Print performance data
 	Core::TimeSpan cpuTime = cpuEnd - cpuStart;
 	Core::TimeSpan gpuTime = OpenCL::getElapsedTime(execution);
