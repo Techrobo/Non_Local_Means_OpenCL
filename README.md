@@ -16,3 +16,8 @@ make
 Note: after making build , make sure that all the input noisy images are in the build folder and output images will also be stored in build folder.
 If make is successful then run in the terminal to run the NLM algorithm
 ./Opencl-project-group8
+
+Dependencies (install yourself in your own linux)
+sudo apt install cmake
+sudo apt install libboost-all-dev
+sudo apt install ocl-icd-opencl-dev
