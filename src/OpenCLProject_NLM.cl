@@ -81,7 +81,7 @@ float filterPixel( __global float * image,
     
     barrier(CLK_LOCAL_MEM_FENCE);
 
-
+    /*
     //printf("kernelcheck3");
     dist = computePatchDistance(image,  
                                 _weights, 
@@ -97,6 +97,23 @@ float filterPixel( __global float * image,
     res += w * image[patchRowStart * n + patchColStart];
     //printf("kernelcheck11");
     //printf("kernelcheck12");
+    */
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            dist = computePatchDistance(image,  
+                                        _weights, 
+                                        n, 
+                                        patchSize, 
+                                        patchRowStart, 
+                                        patchColStart, 
+                                        i - patchSize / 2, 
+                                        j - patchSize / 2  );
+            w = computeWeight(dist, sigma);
+            sumW += w;
+            res += w * image[i * n + j];
+        }
+    }
     res = res / sumW;
     return res;
 }

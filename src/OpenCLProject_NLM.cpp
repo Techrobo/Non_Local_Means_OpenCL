@@ -274,7 +274,7 @@ int main(int argc, char** argv) {
 	for (int i = 0; i < count; i++)
 		h_input[i] = (rand() % 100) / 5.0f - 10.0f;
 	*/
-	/*
+	
 	// Use an image (Valve.pgm) as input data
 	{
 		std::vector<float> inputData;
@@ -287,12 +287,12 @@ int main(int argc, char** argv) {
 		}
 	}
 	// Use an image (Valve.pgm) as input data
-	*/
 	
+	/*
 	// Input image (noisy_house.txt)
 	std::cout << "Image read txt" << std::endl ;
 	h_input = read("/zhome/guptasm/gpulabproject/build/noisy_house.txt", n, n, ',');
-    
+    */
 	
 	// Do calculation on the host side
 
