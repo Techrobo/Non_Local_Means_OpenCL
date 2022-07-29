@@ -52,6 +52,32 @@ float * computeInsideWeights(int patchSize, float patchSigma)
 
     return _weights;
 }
+std::vector<float> computeInsideWeightsgpu(int patchSize, float patchSigma)
+{
+	std::vector<float> _weights(patchSize * patchSize);
+    int centralPixelRow = patchSize / 2;
+    int centralPixelCol = centralPixelRow;
+    float _dist;
+    float _sumW = 0;
+
+    for (int i = 0; i < patchSize; i++) {
+        for (int j = 0; j < patchSize; j++) {
+            _dist = (centralPixelRow - i) * (centralPixelRow - i) +
+                    (centralPixelCol - j) * (centralPixelCol - j);
+            _weights[i * patchSize + j] = exp(-_dist / (2 * (patchSigma * patchSigma)));
+            _sumW += _weights[i * patchSize + j];
+        }
+    }
+    
+    for (int i = 0; i < patchSize; i++) {
+        for (int j = 0; j < patchSize; j++) {
+            _weights[i * patchSize + j] = _weights[i * patchSize + j] / _sumW;
+			
+        }
+    }
+
+    return _weights;
+}
 
 bool isInBounds(int n, int x, int y) 
 {
@@ -205,11 +231,11 @@ int main(int argc, char** argv) {
 	cl::Kernel nlmkernel(program, "nlmKernel");
 
 	// Declare some values
-	float patchSize = 5 ;
+	int patchSize = 5 ;
     float filterSigma = 0.060000 ;
     float patchSigma = 1.2000000 ;
 	//std::vector<float> res(n * n);
-    float * _weights = computeInsideWeights(patchSize, patchSigma); //To calculate inside weights
+    std::vector<float>_weights = computeInsideWeightsgpu(patchSize, patchSigma); //To calculate inside weights
 	std::size_t wgSizeX = 16; //16; // Number of work items per work group in X direction
 	std::size_t wgSizeY = 16; //16;
 	std::size_t countX = wgSizeX * 4 ; //4; // Overall number of work items in X direction = Number of elements in X direction
@@ -236,7 +262,7 @@ int main(int argc, char** argv) {
 	//memset(h_input.data(), 255, size_image);
 	//memset(h_outputCpu.data(), 255, size_image);
 	memset(h_outputGpu.data(), 255, size_image);
-	memset(_weights, 255, size_weights); //For weight vetor
+	//memset(_weights.data(), 255, size_weights); //For weight vetor
 	//TODO: GPU
 	//queue.enqueueWriteBuffer(d_input, true, 0, size_image, h_input.data());
 	//queue.enqueueWriteBuffer(d_weights, true, 0, size_weights, _weights);
@@ -292,7 +318,8 @@ int main(int argc, char** argv) {
 	cl::Event copy1;
 	queue.enqueueWriteBuffer(d_input, true, 0, size_image, h_input.data(),NULL, &copy1);
 	//check if we should use cl::inputimage
-	queue.enqueueWriteBuffer(d_weights, true, 0, size_weights, _weights);
+	cl::Event copy3;
+	queue.enqueueWriteBuffer(d_weights, true, 0, size_weights, _weights.data(),NULL,&copy3);
 	// Launch kernel on the device
 	cl::Event execution;
     nlmkernel.setArg<cl::Buffer>(0, d_input);
@@ -385,12 +412,9 @@ int main(int argc, char** argv) {
 	//queue.enqueueReadImage(outputimage, true, origin, region, countX * sizeof (float), 0, h_outputGpu.data(), NULL, &copy1);
 	queue.enqueueReadBuffer(d_output, true, 0, size_image, h_outputGpu.data(), NULL, &copy2);
 	std::cout<<std::endl;
-	for (size_t i = 0; i < countX*countX; i++)
-	std::cout<<h_outputGpu[i] ;
-	std::cout<<std::endl;
-	for (size_t i = 0; i < patchSize*patchSize; i++)
-	std::cout<< _weights[i]<<',';
-	std::cout<<std::endl;
+	//for (size_t i = 0; i < countX*countX; i++)
+	//std::cout<<h_outputGpu[i] ;
+	//std::cout<<std::endl;
 	// Print performance data
 	Core::TimeSpan cpuTime = cpuEnd - cpuStart;
 	Core::TimeSpan gpuTime = OpenCL::getElapsedTime(execution);

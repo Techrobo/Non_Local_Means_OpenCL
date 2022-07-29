@@ -48,8 +48,9 @@ float computePatchDistance( __global float * image,
                 temp = image[(p1_rowStart + i) * n + p1_colStart + j] - image[(p2_rowStart + i) * n + p2_colStart + j];
                
                 //printf("\nkernelcheck7");
-                //ans +=  _weights[i * patchSize + j] * temp * temp;
-                ans +=  1* temp * temp;
+                //printf("%f",_weights[i * patchSize + j]);
+                ans +=  _weights[i * patchSize + j] * temp * temp;
+                //ans +=  1* temp * temp;
                
                 //printf("\nkernelcheck8");
             }
