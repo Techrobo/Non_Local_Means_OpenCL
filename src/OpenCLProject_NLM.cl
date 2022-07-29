@@ -37,8 +37,8 @@ float computePatchDistance( __global float * image,
 {
     
     
-    float ans = 0;
-    float temp;
+    long ans = 0;
+    long temp;
     //printf("\nkernelcheck4");
     for (int i = 0; i < 5; i++) {
         for (int j = 0; j < 5; j++) {
@@ -131,7 +131,7 @@ __kernel void nlmKernel(__global float * image,
     //for (int i = 0; i < n; i++) {
         //for (int j = 0; j < n; j++) {
     //printf("kernelcheck1"); 
-    filteredImage[getIndexGlobal(countX,pixelCol,pixelRow)] = filterPixel(image, _weights, n, patchSize, pixelCol,pixelRow, sigma);
+    filteredImage[getIndexGlobal(countX,pixelRow,pixelCol)] = filterPixel(image, _weights, n, patchSize, pixelCol,pixelRow, sigma);
     //printf("kernelcheck13"); 
         //}
     //filteredImage[getIndexGlobal(countX,pixelCol,pixelRow)] = 0.1;

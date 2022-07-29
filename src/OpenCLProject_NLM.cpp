@@ -377,14 +377,19 @@ int main(int argc, char** argv) {
 	//nlmkernel.setArg<cl::Buffer>(5, d_output);
     queue.enqueueNDRangeKernel(nlmkernel, cl::NullRange, cl::NDRange(countX, countY), cl::NDRange(wgSizeX, wgSizeY), NULL, &execution);
     */
-
+   
     
 	// Copy output data back to host
 	cl::Event copy2;
 	//queue.enqueueReadImage(outputimage, true, origin, region, countX * sizeof (float), 0, h_outputGpu.data(), NULL, &copy1);
 	queue.enqueueReadBuffer(d_output, true, 0, size_image, h_outputGpu.data(), NULL, &copy2);
+	std::cout<<std::endl;
 	for (size_t i = 0; i < countX*countX; i++)
 	std::cout<<h_outputGpu[i] ;
+	std::cout<<std::endl;
+	for (size_t i = 0; i < patchSize*patchSize; i++)
+	std::cout<< _weights[i]<<',';
+	std::cout<<std::endl;
 	// Print performance data
 	Core::TimeSpan cpuTime = cpuEnd - cpuStart;
 	Core::TimeSpan gpuTime = OpenCL::getElapsedTime(execution);
