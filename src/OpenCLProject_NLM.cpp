@@ -262,12 +262,12 @@ int main(int argc, char** argv) {
 	}
 	// Use an image (Valve.pgm) as input data
 	*/
-	/*
+	
 	// Input image (noisy_house.txt)
 	std::cout << "Image read txt" << std::endl ;
 	h_input = read("/zhome/guptasm/gpulabproject/build/noisy_house.txt", n, n, ',');
     
-	*/
+	
 	// Do calculation on the host side
 
 	Core::TimeSpan cpuStart = Core::getCurrentTime();
@@ -298,7 +298,7 @@ int main(int argc, char** argv) {
     nlmkernel.setArg<cl::Buffer>(0, d_input);
 	nlmkernel.setArg<cl::Buffer>(1, d_weights);
 	nlmkernel.setArg<cl_int>(2, n);
-	nlmkernel.setArg<cl_float>(3, patchSize);
+	nlmkernel.setArg<cl_int>(3, patchSize);
 	nlmkernel.setArg<cl_float>(4, filterSigma);
 	nlmkernel.setArg<cl::Buffer>(5, d_output);
     queue.enqueueNDRangeKernel(nlmkernel, cl::NullRange, cl::NDRange(countX, countY), cl::NDRange(wgSizeX, wgSizeY), NULL, &execution);
