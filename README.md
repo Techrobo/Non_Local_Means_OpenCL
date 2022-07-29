@@ -3,7 +3,7 @@ For any queries please contact me at : st173207@stud.uni-stuttgart.de
 By: Shubham Gupta (3506475)
 Master of Science Information Technology
 
-Use the gpulabproject for linux and extract it in server as Opencl-Basics-Linux folder
+Use the gpulabproject.zip(For github repo : Non_Local_Means_OpenCL-main.zip ) for linux and extract it in server as Opencl-Basics-Linux folder
 In the terminal :
 cd gpulabproject
 mkdir build
