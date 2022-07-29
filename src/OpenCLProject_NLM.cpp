@@ -210,17 +210,17 @@ int main(int argc, char** argv) {
     float patchSigma = 1.2000000 ;
 	//std::vector<float> res(n * n);
     float * _weights = computeInsideWeights(patchSize, patchSigma); //To calculate inside weights
-	std::size_t wgSizeX = 16; // Number of work items per work group in X direction
-	std::size_t wgSizeY = 16;
-	std::size_t countX = wgSizeX * 4; // Overall number of work items in X direction = Number of elements in X direction
-	std::size_t countY = wgSizeY * 4;
+	std::size_t wgSizeX = 16; //16; // Number of work items per work group in X direction
+	std::size_t wgSizeY = 16; //16;
+	std::size_t countX = wgSizeX * 4 ; //4; // Overall number of work items in X direction = Number of elements in X direction
+	std::size_t countY = wgSizeY * 4 ;//4;
 	//std::size_t countX = 64; // Overall number of work items in X direction = Number of elements in X direction
 	//std::size_t countY = 64;
 	std::size_t n = countX ; // Size of input image nxn
 	//countX *= 3; countY *= 3;
 	std::size_t count = countX * countY; // Overall number of elements
 	std::size_t size_image = count * sizeof (float); // Size of data in bytes
-	int size_weights = patchSize * patchSize * sizeof(float ); //For the size of weight vector
+	std::size_t size_weights = patchSize * patchSize * sizeof(float ); //For the size of weight vector
 
 	// Allocate space for output data from CPU and GPU on the host
 	std::vector<float> h_input (count);
@@ -273,15 +273,18 @@ int main(int argc, char** argv) {
 	h_outputCpu= nlmHost(h_input.data(), n, patchSize, patchSigma, filterSigma);
 	Core::TimeSpan cpuEnd = Core::getCurrentTime();
 
+	//for (size_t i = 0; i < countX*countX; i++)
+	//std::cout<<h_outputCpu[i] ;
+
 	//////// Store CPU output image ///////////////////////////////////
-	std::cout << std::endl<<"check1";
+	//std::cout << std::endl<<"check1";
 	Core::writeImagePGM("output_nlm_cpu.pgm", h_outputCpu, countX, countY);
 
-	std::cout << std::endl<<"check2";
+	//std::cout << std::endl<<"check2";
 
     //Do Calculation on device side
 	//Reinitialize output memory to 0xff
-	//memset(h_outputGpu.data(), 255, size_image);
+	memset(h_outputGpu.data(), 255, size_image);
 	//TODO: GPU
 	queue.enqueueWriteBuffer(d_output, true, 0, size_image, h_outputGpu.data());
 	// Copy input data to device
@@ -299,20 +302,99 @@ int main(int argc, char** argv) {
 	nlmkernel.setArg<cl::Buffer>(5, d_output);
     queue.enqueueNDRangeKernel(nlmkernel, cl::NullRange, cl::NDRange(countX, countY), cl::NDRange(wgSizeX, wgSizeY), NULL, &execution);
 
+/*
+    //Device Calculation image2d
+	// Reinitialize output memory to 0xff
+	memset(h_outputGpu.data(), 255, size_image);
+	//TODO: GPU
+	queue.enqueueWriteBuffer(d_output, true, 0, size_image, h_outputGpu.data());
+
+
+	// Copy input data to device
+	cl::Event copy1;
+	cl::Image2D image;
+	image = cl::Image2D(context, CL_MEM_READ_ONLY, cl::ImageFormat(CL_R, CL_FLOAT), countX, countY);
+	cl::size_t<3> origin;
+	origin[0] = origin[1] = origin[2] = 0;
+	cl::size_t<3> region;
+	region[0] = countX;
+	region[1] = countY;
+	region[2] = 1;
+	queue.enqueueWriteImage(image, true, origin, region, countX * sizeof (float), 0, h_input.data(), NULL, &copy1);
+	
+	cl::Image2D outputimage;
+	outputimage = cl::Image2D(context, CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), countX, countY);
+	//cl::size_t<3> origin;
+	origin[0] = origin[1] = origin[2] = 0;
+	//cl::size_t<3> region;
+	region[0] = countX;
+	region[1] = countY;
+	region[2] = 1;
+	
+	
+	// Launch kernel on the device
+	cl::Event execution;
+    nlmkernel.setArg<cl::Image2D>(0, image);
+	nlmkernel.setArg<cl::Buffer>(1, d_weights);
+	nlmkernel.setArg<cl_int>(2, n);
+	nlmkernel.setArg<cl_float>(3, patchSize);
+	nlmkernel.setArg<cl_float>(4, filterSigma);
+	nlmkernel.setArg<cl::Image2D>(5, outputimage);
+	//nlmkernel.setArg<cl::Buffer>(5, d_output);
+    queue.enqueueNDRangeKernel(nlmkernel, cl::NullRange, cl::NDRange(countX, countY), cl::NDRange(wgSizeX, wgSizeY), NULL, &execution);
+    */
+    /*
+	// Copy input data to device for color image
+	cl::Event copy1;
+	cl::Image2D image;
+	image = cl::Image2D(context, CL_MEM_READ_ONLY, cl::ImageFormat(CL_R, CL_FLOAT), countX, countY);
+	cl::size_t<3> origin;
+	origin[0] = origin[1] = origin[2] = 0;
+	cl::size_t<3> region;
+	region[0] = countX;
+	region[1] = countY;
+	region[2] = 1;
+	queue.enqueueWriteImage(image, true, origin, region, countX * sizeof (float), 0, h_input.data(), NULL, &copy1);
+	
+	cl::Image2D outputimage;
+	outputimage = cl::Image2D(context, CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), countX, countY);
+	//cl::size_t<3> origin;
+	origin[0] = origin[1] = origin[2] = 0;
+	//cl::size_t<3> region;
+	region[0] = countX;
+	region[1] = countY;
+	region[2] = 1;
+	
+	
+	// Launch kernel on the device
+	cl::Event execution;
+    nlmkernel.setArg<cl::Image2D>(0, image);
+	nlmkernel.setArg<cl::Image2D>(1, outputimage);
+	nlmkernel.setArg<cl_int>(2, n);
+	nlmkernel.setArg<cl_int>(3, n);
+	nlmkernel.setArg<cl_float>(4, 1.0f/(1.45f*1.45f));
+	nlmkernel.setArg<cl_float>(5, 0.2f);
+	//nlmkernel.setArg<cl::Buffer>(5, d_output);
+    queue.enqueueNDRangeKernel(nlmkernel, cl::NullRange, cl::NDRange(countX, countY), cl::NDRange(wgSizeX, wgSizeY), NULL, &execution);
+    */
+
+    
 	// Copy output data back to host
 	cl::Event copy2;
+	//queue.enqueueReadImage(outputimage, true, origin, region, countX * sizeof (float), 0, h_outputGpu.data(), NULL, &copy1);
 	queue.enqueueReadBuffer(d_output, true, 0, size_image, h_outputGpu.data(), NULL, &copy2);
-
+	for (size_t i = 0; i < countX*countX; i++)
+	std::cout<<h_outputGpu[i] ;
 	// Print performance data
 	Core::TimeSpan cpuTime = cpuEnd - cpuStart;
-/*	Core::TimeSpan gpuTime = OpenCL::getElapsedTime(execution);
+	Core::TimeSpan gpuTime = OpenCL::getElapsedTime(execution);
 	Core::TimeSpan copyTime = OpenCL::getElapsedTime(copy1) + OpenCL::getElapsedTime(copy2);
-	Core::TimeSpan overallGpuTime = gpuTime + copyTime; */
+	Core::TimeSpan overallGpuTime = gpuTime + copyTime; 
 	std::cout << "CPU Time: " << cpuTime.toString() << ", " << (count / cpuTime.getSeconds() / 1e6) << " MPixel/s" << std::endl;;
-/*	std::cout << "Memory copy Time: " << copyTime.toString() << std::endl;
+	std::cout << "Memory copy Time: " << copyTime.toString() << std::endl;
 	std::cout << "GPU Time w/o memory copy: " << gpuTime.toString() << " (speedup = " << (cpuTime.getSeconds() / gpuTime.getSeconds()) << ", " << (count / gpuTime.getSeconds() / 1e6) << " MPixel/s)" << std::endl;
 	std::cout << "GPU Time with memory copy: " << overallGpuTime.toString() << " (speedup = " << (cpuTime.getSeconds() / overallGpuTime.getSeconds()) << ", " << (count / overallGpuTime.getSeconds() / 1e6) << " MPixel/s)" << std::endl;
-*/
+
 	//////// Store GPU output image ///////////////////////////////////
 	Core::writeImagePGM("output_nlm_gpu.pgm", h_outputGpu, countX, countY);
     /*

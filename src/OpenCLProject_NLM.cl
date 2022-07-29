@@ -25,6 +25,7 @@ float computeWeight(float dist, float sigma) // compute weight without "/z(i)" d
     //return (-dist / (sigma * sigma));
 }
 
+
 float computePatchDistance( __global float * image, 
 							__global float * _weights, 
 							int n, 
@@ -34,63 +35,110 @@ float computePatchDistance( __global float * image,
                             int p2_rowStart, 
                             int p2_colStart ) 
 {
+    
+    
     float ans = 0;
     float temp;
-
-    for (int i = 0; i < patchSize; i++) {
-        for (int j = 0; j < patchSize; j++) {
+    //printf("\nkernelcheck4");
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            //printf("kernelcheck5");
             if (isInBounds(n, p1_rowStart + i, p1_colStart + j) && isInBounds(n, p2_rowStart + i, p2_colStart + j)) {
+                printf("\nkernelcheck6");
                 temp = image[(p1_rowStart + i) * n + p1_colStart + j] - image[(p2_rowStart + i) * n + p2_colStart + j];
-                ans +=  _weights[i * patchSize + j] * temp * temp;
+                //printf("%f , ",temp);
+                printf("\nkernelcheck7");
+                //ans +=  _weights[i * 5 + j] * temp * temp;
+                ans +=  1* temp * temp;
+                printf("%f , ",ans);
+                printf("\nkernelcheck8");
             }
         }
     }
-
+    printf("\nkernelcheck9");
+    printf("%f , ",ans);
     return ans;
+
 }
-__kernel void nlmKernel(__global float * image, 
-                        __global float * _weights, 
-                        int n, 
-                        int patchSize, 
-                        float sigma,
-                        __global float *filteredImage)
+
+float filterPixel( __global float * image, 
+                   __global float * _weights, 
+                   int n, 
+                   int patchSize, 
+                   int pixelRow, 
+                   int pixelCol, 
+                   float sigma )
 {
-
-
-    int pixelRow = get_global_id(0);
-    int pixelCol = get_global_id(1);
-
- 	size_t countX = get_global_size(0);
-	size_t countY = get_global_size(1);   
-
-    //if (getIndexGlobal(countX,pixelRow,pixelCol) >= n * n) 
-    //    return;
-
     float res = 0;
     float sumW = 0;                    // sumW is the Z(i) of w(i, j) formula
     float dist;
     float w;
-    int patchRowStart = pixelRow - patchSize / 2;
-    int patchColStart = pixelCol - patchSize / 2;
-
+    //int patchRowStart = pixelRow - patchSize / 2;
+    int patchRowStart = pixelRow - 2;
+    printf("%d , ",patchRowStart);
+    //return 0.5;
+    //int patchColStart = pixelCol - patchSize / 2;
+    int patchColStart = pixelCol - 2;
+    printf("%d , ",patchColStart);
+    //printf("kernelcheck2");
+    
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
+    //for (int i = 0; i < n; i++) {
+       //for (int j = 0; j < n; j++) {
+            //printf("kernelcheck3");
             dist = computePatchDistance(image,  
                                         _weights, 
                                         n, 
                                         patchSize, 
                                         patchRowStart, 
                                         patchColStart, 
-                                        i - patchSize / 2, 
-                                        j - patchSize / 2  );
+                                        pixelRow, 
+                                        pixelCol);
+            //printf("kernelcheck10");                            
             w = computeWeight(dist, sigma);
             sumW += w;
-            res += w * image[j * n + i];
-        }
-    }
+            res += w * image[patchRowStart * n + patchColStart];
+            printf("kernelcheck11");
+        //}
+    //}
+    printf("kernelcheck12");
+    if(sumW!=0)
     res = res / sumW;
+    else
+    res=0.0;
+    barrier(CLK_LOCAL_MEM_FENCE);
+    return res;
+}
 
-    filteredImage[getIndexGlobal(countX,pixelCol,pixelRow)] = res;
-    }
+__kernel void nlmKernel(__global float * image, 
+                        __global float * _weights, 
+                        int n, 
+                        int patchSize, 
+                        float sigma,
+                        __global float *filteredImage)
+{   
+    int pixelRow = get_global_id(0);
+    int pixelCol = get_global_id(1);
+    printf("%d , %d \n",pixelRow,pixelCol);
+    
+ 	size_t countX = get_global_size(0);
+	size_t countY = get_global_size(1);
+    printf("%d , %d \n",countX,countY);
+    
+    //if (pixelRow<n && pixelCol<n){
+    //barrier(CLK_LOCAL_MEM_FENCE);
+    //for (int i = 0; i < n; i++) {
+        //for (int j = 0; j < n; j++) {
+    //printf("kernelcheck1"); 
+    filteredImage[getIndexGlobal(countX,pixelCol,pixelRow)] = filterPixel(image, _weights, n, patchSize, pixelCol,pixelRow, sigma);
+    //printf("kernelcheck13"); 
+        //}
+    //filteredImage[getIndexGlobal(countX,pixelCol,pixelRow)] = 0.1;
+    //} 
+    
+    
+
+}
+
+
