@@ -36,8 +36,8 @@ float computePatchDistance( __global float * image,
 {
     
     
-    long ans = 0;
-    long temp;
+    float ans = 0;
+    float temp;
  
     //printf("\nkernelcheck4");
     for (int i = 0; i < patchSize; i++) {
@@ -98,7 +98,7 @@ float filterPixel( __global float * image,
     //printf("kernelcheck11");
     //printf("kernelcheck12");
     */
-
+    //printf("kernelcheck3");
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             dist = computePatchDistance(image,  
@@ -109,12 +109,15 @@ float filterPixel( __global float * image,
                                         patchColStart, 
                                         i - patchSize / 2, 
                                         j - patchSize / 2  );
+            //printf("kernelcheck10");                                   
             w = computeWeight(dist, sigma);
             sumW += w;
             res += w * image[i * n + j];
+            //printf("kernelcheck11");
         }
     }
     res = res / sumW;
+    //printf("kernelcheck12");
     return res;
 }
 

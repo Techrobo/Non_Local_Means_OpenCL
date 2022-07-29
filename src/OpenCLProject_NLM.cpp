@@ -238,8 +238,8 @@ int main(int argc, char** argv) {
     std::vector<float>_weights = computeInsideWeightsgpu(patchSize, patchSigma); //To calculate inside weights
 	std::size_t wgSizeX = 16; //16; // Number of work items per work group in X direction
 	std::size_t wgSizeY = 16; //16;
-	std::size_t countX = wgSizeX * 4 ; //4; // Overall number of work items in X direction = Number of elements in X direction
-	std::size_t countY = wgSizeY * 4 ;//4;
+	std::size_t countX = wgSizeX * 12 ; //4; // Overall number of work items in X direction = Number of elements in X direction
+	std::size_t countY = wgSizeY * 12 ;//4;
 	//std::size_t countX = 64; // Overall number of work items in X direction = Number of elements in X direction
 	//std::size_t countY = 64;
 	std::size_t n = countX ; // Size of input image nxn
@@ -279,7 +279,7 @@ int main(int argc, char** argv) {
 	{
 		std::vector<float> inputData;
 		std::size_t inputWidth, inputHeight;
-		Core::readImagePGM("lenapgm.pgm", inputData, inputWidth, inputHeight);
+		Core::readImagePGM("TajMahal_192.pgm", inputData, inputWidth, inputHeight);
 		for (size_t j = 0; j < countY; j++) {
 			for (size_t i = 0; i < countX; i++) {
 				h_input[i + countX * j] = inputData[(i % inputWidth) + inputWidth * (j % inputHeight)];
@@ -291,7 +291,7 @@ int main(int argc, char** argv) {
 	/*
 	// Input image (noisy_house.txt)
 	std::cout << "Image read txt" << std::endl ;
-	h_input = read("/zhome/guptasm/gpulabproject/build/noisy_house.txt", n, n, ',');
+	h_input = read("/zhome/guptasm/gpulabproject/build/noisy_lena.txt", n, n, ',');
     */
 	
 	// Do calculation on the host side
@@ -427,7 +427,7 @@ int main(int argc, char** argv) {
 
 	//////// Store GPU output image ///////////////////////////////////
 	Core::writeImagePGM("output_nlm_gpu.pgm", h_outputGpu, countX, countY);
-    /*
+    
 		// Check whether results are correct
 		std::size_t errorCount = 0;
 		for (size_t i = 0; i < countX; i = i + 1) { //loop in the x-direction
@@ -449,9 +449,9 @@ int main(int argc, char** argv) {
 		}
 
 		std::cout << std::endl;
-	}
+	
 
 	std::cout << "Success" << std::endl;
-    */
+    
 	return 0;
 }
