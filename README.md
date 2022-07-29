@@ -1,4 +1,5 @@
 # Non_Local_Means_OpenCL
+For any queries please contact me at : st173207@stud.uni-stuttgart.de
 By: Shubham Gupta (3506475)
 Master of Science Information Technology
 
